@@ -1,4 +1,4 @@
-# Gaussian Noise Analyzer — Group A1
+# Noise Analyzer — Group A1
 
 A two-part project that acquires an analog noise signal from an Arduino UNO R4 Wi-Fi, streams it to a PC via serial port, and analyzes its statistical distribution in Python.
 
@@ -9,7 +9,8 @@ A two-part project that acquires an analog noise signal from an Arduino UNO R4 W
 ```
 noise_analyzer/
 ├── noise_reader.ino      # Arduino sketch — acquires and streams ADC samples
-├── noise_analyzer.py     # Python script — records, plots, and analyzes the signal
+├── noise_writer.py       # Python script — records samples from serial port to file, then triggers analysis
+├── noise_analyzer.py     # Python module — loads data from file, plots histogram
 ├── data.txt              # Auto-generated — raw voltage samples
 └── README.md
 ```
@@ -21,15 +22,17 @@ noise_analyzer/
 ```
 Arduino UNO R4 Wi-Fi          USB / Serial (2 Mbaud)          PC (Python)
         │                                                           │
-  analogRead(A0)  ──────────────── voltage string ───────────►  readline()
-  convert to V                                                  save to file
-  Serial.println()                                              plot histogram
-                                                                Gaussian check
+  analogRead(A0)  ──────────────── voltage string ───────────►  noise_writer.py
+  convert to V                                                   saves to data.txt
+  Serial.println()                                                    │
+                                                               noise_analyzer.py
+                                                                plots histogram
 ```
 
 1. Arduino samples pin **A0** at 14-bit resolution and converts the raw integer to voltage.
 2. Each sample is sent as a decimal string over the serial port at **2 000 000 baud**.
-3. Python reads the serial stream for a configurable duration, saves the samples to `data.txt`, removes the DC offset, and plots a histogram to verify whether the noise follows a **Gaussian distribution**.
+3. `noise_writer.py` reads the serial stream for a configurable duration and saves the samples to `data.txt`. Once acquisition is complete, it automatically calls `analyze_data()` from `noise_analyzer.py`.
+4. `noise_analyzer.py` loads the file, removes the DC offset, and plots a histogram to verify whether the noise follows a **Gaussian distribution**.
 
 ---
 
@@ -62,30 +65,39 @@ Arduino UNO R4 Wi-Fi          USB / Serial (2 Mbaud)          PC (Python)
 ```bash
 ls /dev/tty.*
 ```
-Look for something like `/dev/tty.usbmodemXXXXXX` and update `serial_port` in `noise_analyzer.py`.
+Look for something like `/dev/tty.usbmodemXXXXXX` and update `serial_port` in `noise_writer.py`.
 
 On **Windows** the port will be `COM3`, `COM4`, etc. (visible in Device Manager).
 
-### 3 — Configure Python parameters
+### 3 — Configure parameters
 
-Open `noise_analyzer.py` and adjust the parameters at the top of the file:
+**`noise_writer.py`**
 
 | Parameter | Default | Description |
 |---|---|---|
 | `input_duration` | `10` | Acquisition time in seconds |
-| `bin_ratio` | `0.004` | Controls histogram bin count (`bins = bin_ratio × N_samples`) |
 | `serial_port` | `/dev/tty.usbmodemB081849E6E302` | Serial port of the Arduino |
+| `output_file` | `data.txt` | Output file path |
 
-### 4 — Run Python
+**`noise_analyzer.py`**
+
+| Parameter | Default | Description |
+|---|---|---|
+| `num_bins` | `20` | Number of histogram bins |
+
+### 4 — Run
+
+Only `noise_writer.py` needs to be launched — it automatically calls the analyzer when acquisition is complete:
+
 ```bash
-python3 noise_analyzer.py
+python3 noise_writer.py
 ```
 
 The script will:
-- Acquire samples for `input_duration` seconds
-- Save them to `data.txt`
-- Print the number of samples and the DC offset
-- Display a histogram of the zero-mean signal
+1. Acquire samples for `input_duration` seconds
+2. Save them to `data.txt`
+3. Print the number of samples and the DC offset
+4. Display a histogram of the signal
 
 ---
 
@@ -111,15 +123,16 @@ V = (raw_value / (2^14 - 1)) × 4.807
 ## Output
 
 - **`data.txt`** — one voltage sample per line (overwritten at each run)
-- **Histogram plot** — distribution of the zero-mean noise signal; a bell curve indicates Gaussian distribution
+- **Histogram plot** — distribution of the signal; a bell curve indicates Gaussian distribution
 
 ---
 
 ## Notes
 
-- The first sample in `data.txt` is discarded (`noise = noise[1::]`) to avoid a corrupted reading at startup.
+- The first sample in `data.txt` is discarded inside `analyze_data()` (`noise[1::]`) to avoid a corrupted reading at startup.
 - The high baud rate (2 Mbaud) maximizes the sampling rate. Make sure your USB driver supports it.
 - On macOS, if Python throws `[Errno 16] Resource busy`, the Arduino IDE is still holding the port — close it completely before running the script.
+- `noise_analyzer.py` can also be used standalone by calling `analyze_data("your_file.txt")` directly, making it reusable with any previously recorded dataset.
 
 ---
 
