@@ -6,8 +6,8 @@
                    a serial port that can be read with Python                %
 % PLATFORM ....... Arduino UNO R4 Wi-Fi                                      %
 % LINK-FILEs ..... none                                                      %
-% DATE ........... Apr/17/2024                                               %
-% LAST-MFD ....... Apr/17/2024                                               %
+% DATE ........... Apr/17/2026                                               %
+% LAST-MFD ....... Apr/17/2026                                               %
 % CREATED by ..... Group A1                                                  %
 %%%%%%%%%*%%%%%%%%%*%%%%%%%%%%*%%%%%%%%%%*%%%%%%%%%%*%%%%%%%%%%*%%%%%%%%%%*%%!
  */

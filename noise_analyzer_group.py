@@ -3,7 +3,8 @@
 % FILE ........... noise_analyzer.py                                         %
 % LANGUAGE ....... Python                                                    %
 % DESCRIPTION .... extract signal's data from a .txt file and verifies if    %
-                   signal has gaussian distribution.                         %
+                   the partitions of the signal (groups) have gaussian       %
+                   distribution.                                             %
 % PLATFORM ....... Arduino UNO R4 Wi-Fi                                      %
 % LINK-FILEs ..... none                                                      %
 % DATE ........... Apr/17/2026                                               %
@@ -14,46 +15,66 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import stats, fft
+from scipy import stats
+
+from noise_analyzer import plot_noise
 
 # parameters
 num_bins = 20
 
-def plot_noise(noise, noise_duration_in_sec, block_size=500):
-    # Parameters
-    noise_length = len(noise)
-    t = np.linspace(0, noise_duration_in_sec, noise_length)
-    fs = noise_length / noise_duration_in_sec  # Frequenza di campionamento reale
+def compute_group_analysis(noise):
+    # parameters
+    numSamples = 500
+    noiseLength = len(noise)
+    numGroups = noiseLength // numSamples
 
-    # Configurazione Grafici (3 sotto-grafici anziché 2 per mostrarti la differenza)
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 7))
+    print("\n" + "=" * 40)
+    print("       STATISTICAL ANALYSIS RESULTS")
+    print("=" * 40)
+    print(f"Number of samples per group: {numSamples}")
+    print(f"Number of groups: {numGroups}")
 
-    # 1. TIME DOMAIN
-    ax1.plot(t, noise, color='royalblue', lw=0.8)
-    # NOTA: Se l'asse X usa il tempo 't', l'etichetta corretta è 'Time (s)', non 'Samples'
-    ax1.set_xlabel('Time (s)')
-    ax1.set_ylabel('Amplitude')
-    ax1.set_title('Noise in Time Domain')
-    ax1.grid(True, alpha=0.4)
+    bestStartIndex = 0
+    bestEndIndex = 0
+    best_sw_p = 0
 
-    # 2. FREQUENCY DOMAIN (FFT Standard intera - per confronto)
-    # Corretta la normalizzazione: la divisione per fs nel calcolo della FFT non serve per lo spettro di ampiezza.
-    fft_signal = fft.fft(noise)
-    freqs = fft.fftfreq(noise_length, 1 / fs)
+    for group in range(numGroups):
+        startIndex = group * numSamples
+        endIndex = min(startIndex + numSamples, noiseLength-1)
 
-    half_len = noise_length // 2
-    positive_freqs = freqs[:half_len]
-    # La normalizzazione corretta per l'ampiezza è dividere per il numero di punti N
-    magnitude = 2 * np.abs(fft_signal[:half_len]) / noise_length
+        if startIndex == endIndex:
+            continue
 
-    ax2.plot(positive_freqs, magnitude, color='indianred', lw=0.6)
-    ax2.set_xlabel('Frequency (Hz)')
-    ax2.set_ylabel('Magnitude')
-    ax2.set_title('Standard FFT (Full Signal - Very Noisy)')
-    ax2.grid(True, alpha=0.4)
+        noise_portion = noise[startIndex : endIndex]
 
-    plt.tight_layout()
-    plt.show()
+        print(f"Group: {group}")
+
+        noise_mean = np.mean(noise_portion)
+        noise_std = np.std(noise_portion)
+        print(f"Mean (Offset):    {noise_mean:.4f}")
+        print(f"Std Deviation:    {noise_std:.4f}")
+        print("-" * 40)
+
+        # Shapiro-Wilk Test
+        sw_stat, sw_p = stats.shapiro(noise_portion)
+        print(f"Shapiro-Wilk:     p-value = {sw_p:.4e}")
+        sw_result = "Gaussian" if sw_p > 0.05 else "Not Gaussian"
+        print(f"Result (SW):      {sw_result}")
+        # update shapiro test
+        if sw_p > best_sw_p:
+            best_sw_p = sw_p
+            bestStartIndex = startIndex
+            bestEndIndex = endIndex
+
+
+        # Chi-Square Normality Test (D'Agostino's K-squared)
+        chi_stat, chi_p = stats.normaltest(noise_portion)
+        print(f"Chi-Square:       p-value = {chi_p:.4e}")
+        chi_result = "Gaussian" if chi_p > 0.05 else "Not Gaussian"
+        print(f"Result (Chi2):    {chi_result}")
+        print("=" * 40 + "\n")
+
+    return [bestStartIndex, bestEndIndex]
 
 def analyze_data(file, noise_duration_in_sec):
     try:
@@ -63,7 +84,12 @@ def analyze_data(file, noise_duration_in_sec):
         return
 
     noise = noise[1::] # first value could be wrong (really high) due to buffer problems
+    #noise = np.random.normal(loc = 2.5, scale = 2.0, size=len(noise))
+    #noise = np.random.uniform(0, 5, size=len(noise))
     plot_noise(noise, noise_duration_in_sec)
+
+    [start, end] = compute_group_analysis(noise)
+    noise = noise[start:end]
 
     print("\n" + "="*40)
     print("       STATISTICAL ANALYSIS RESULTS")
