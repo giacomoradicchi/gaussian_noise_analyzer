@@ -140,4 +140,4 @@ V = (raw_value / (2^14 - 1)) × 4.807
 
 ## Authors
 
-Group A1 — April 2024
+Group A1 — April 2026
