@@ -1,6 +1,7 @@
 # Noise Analyzer — Group A1
 
 A two-part project that acquires an analog noise signal from an Arduino UNO R4 Wi-Fi, streams it to a PC via serial port, and analyzes its statistical distribution in Python.
+[Click here to watch video](https://youtu.be/NcE-0FtHAWY)
 
 ---
 
