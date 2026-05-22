@@ -22,11 +22,31 @@ from noise_analyzer import plot_noise
 # parameters
 num_bins = 20
 
+def generate_and_show_password(noise_signal, length=20):
+    import hashlib
+    import secrets
+    import string
+
+    # 1. Generazione (Logica invariata)
+    noise_data_bytes = noise_signal.tobytes()
+    seed = hashlib.sha256(noise_data_bytes).digest()
+    rng = secrets.SystemRandom(seed)
+    chars = string.ascii_letters + string.digits + string.punctuation
+    password = ''.join(rng.choice(chars) for _ in range(length))
+
+    # 2. Output Console ad alta visibilità
+    print("\n" + "!" * 60)
+    print(" G E N E R A T E D   P A S S W O R D ")
+    print("!" * 60)
+    print(f"\n   {password}\n")
+    print("!" * 60 + "\n")
+
 def compute_group_analysis(noise):
     # parameters
     numSamples = 500
     noiseLength = len(noise)
     numGroups = noiseLength // numSamples
+    numSuccess = 0
 
     print("\n" + "=" * 40)
     print("       STATISTICAL ANALYSIS RESULTS")
@@ -74,7 +94,10 @@ def compute_group_analysis(noise):
         print(f"Result (Chi2):    {chi_result}")
         print("=" * 40 + "\n")
 
-    return [bestStartIndex, bestEndIndex]
+        if chi_p > 0.05 and sw_p > 0.05:
+            numSuccess = numSuccess + 1
+
+    return [bestStartIndex, bestEndIndex, numGroups, numSuccess]
 
 def analyze_data(file, noise_duration_in_sec):
     try:
@@ -88,13 +111,16 @@ def analyze_data(file, noise_duration_in_sec):
     #noise = np.random.uniform(0, 5, size=len(noise))
     plot_noise(noise, noise_duration_in_sec)
 
-    [start, end] = compute_group_analysis(noise)
+    [start, end, groups, success] = compute_group_analysis(noise)
     noise = noise[start:end]
 
     print("\n" + "="*40)
     print("       STATISTICAL ANALYSIS RESULTS")
     print("="*40)
     print(f"Number of samples: {len(noise)}")
+    print(f"Number of groups: {groups}")
+    print(f"Number of success: {success}")
+
     
     noise_mean = np.mean(noise)
     noise_std = np.std(noise)
@@ -158,6 +184,7 @@ def analyze_data(file, noise_duration_in_sec):
 
     plt.tight_layout()
     plt.show()
+    generate_and_show_password(noise, length=20)
 
 if __name__ == "__main__":
-    analyze_data('data.txt', 1)
+    analyze_data('data.txt', 5)

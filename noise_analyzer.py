@@ -19,6 +19,26 @@ from scipy import stats, fft
 # parameters
 num_bins = 20
 
+
+def generate_and_show_password(noise_signal, length=20):
+    import hashlib
+    import secrets
+    import string
+
+    # 1. Generazione (Logica invariata)
+    noise_data_bytes = noise_signal.tobytes()
+    seed = hashlib.sha256(noise_data_bytes).digest()
+    rng = secrets.SystemRandom(seed)
+    chars = string.ascii_letters + string.digits + string.punctuation
+    password = ''.join(rng.choice(chars) for _ in range(length))
+
+    # 2. Output Console ad alta visibilità
+    print("\n" + "!" * 60)
+    print(" G E N E R A T E D   P A S S W O R D ")
+    print("!" * 60)
+    print(f"\n   {password}\n")
+    print("!" * 60 + "\n")
+
 def plot_noise(noise, noise_duration_in_sec, block_size=500):
     # Parameters
     noise_length = len(noise)
@@ -133,5 +153,7 @@ def analyze_data(file, noise_duration_in_sec):
     plt.tight_layout()
     plt.show()
 
+    generate_and_show_password(noise, length=20)
+
 if __name__ == "__main__":
-    analyze_data('data.txt', 1)
+    analyze_data('data.txt', 5)

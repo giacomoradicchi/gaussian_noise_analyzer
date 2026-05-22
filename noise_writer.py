@@ -19,11 +19,11 @@ import time
 from noise_analyzer import analyze_data
 
 # parameters
-input_duration = 1 # secs
+input_duration = 5 # secs
 serial_port = '/dev/tty.usbmodem9888E00985442' # to see the serial input, write on terminal 'ls /dev/tty.*'
 ser = serial.Serial(serial_port, 2000000)
-#output_file = 'data.txt'
-output_file = 'test_data/test_data.txt'
+output_file = 'data.txt'
+#output_file = 'test_data/test_data.txt'
 
 time.sleep(1)
 
