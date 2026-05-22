@@ -49,7 +49,7 @@ Arduino UNO R4 Wi-Fi          USB / Serial (2 Mbaud)          PC (Python)
 - Python 3.x
 - Python libraries:
   ```bash
-  pip install pyserial matplotlib numpy
+  pip install pyserial matplotlib numpy scipy
   ```
 
 ---
